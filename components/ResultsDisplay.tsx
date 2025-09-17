@@ -57,6 +57,16 @@ const CareerCard: React.FC<{ recommendation: CareerRecommendation }> = ({ recomm
                         </div>
                     </Section>
 
+                    {recommendation.resumeSuggestions && recommendation.resumeSuggestions.length > 0 && (
+                        <Section title="Resume Feedback">
+                            <ul className="list-disc list-inside space-y-2 text-[#124170]/80">
+                                {recommendation.resumeSuggestions.map((suggestion, i) => (
+                                    <li key={i}>{suggestion}</li>
+                                ))}
+                            </ul>
+                        </Section>
+                    )}
+
                     <Section title="Key Certifications">
                          <div className="flex flex-wrap gap-2">
                              {recommendation.certifications.map((cert, i) => (

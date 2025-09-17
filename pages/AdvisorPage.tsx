@@ -9,8 +9,13 @@ import Intro from '../components/Intro';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-const getCareerRecommendations = async (profile: StudentProfile): Promise<CareerRecommendationResponse> => {
-    const prompt = `
+type ResumeFile = { name: string; data: string; mimeType: string; };
+
+const getCareerRecommendations = async (profile: StudentProfile, resumeFile: ResumeFile | null): Promise<CareerRecommendationResponse> => {
+    
+    const hasResume = resumeFile !== null;
+
+    let prompt = `
         Analyze this Indian student profile and provide personalized career recommendations.
         The response must be a single, valid JSON object that strictly adheres to the provided schema. Do not include any markdown formatting like \`\`\`json.
 
@@ -36,7 +41,60 @@ const getCareerRecommendations = async (profile: StudentProfile): Promise<Career
         5. salaryProspects: Expected salary range for a fresher and the growth potential in the Indian market (in INR).
         6. certifications: A list of 2-3 relevant and recognized certifications.
         7. marketAdvice: A concise, actionable piece of advice specific to succeeding in this career in India.
+        ${hasResume ? "8. resumeSuggestions: A list of 2-3 specific, actionable suggestions to improve the resume for this career path, tailored to the 'Indian Job Market Context'. Suggestions could include advice on highlighting skills relevant to Indian employers, mentioning relevant local certifications, or tailoring project descriptions to appeal to companies in Indian tech hubs (like Bangalore, Hyderabad)." : ''}
     `;
+
+    const recommendationProperties: any = {
+        careerPath: { type: Type.STRING, description: "The name of the recommended career path." },
+        reasoning: { type: Type.STRING, description: "Detailed reasoning for the recommendation, linking the student's profile to market demands." },
+        skillGapAnalysis: {
+            type: Type.ARRAY,
+            description: "List of skills the student needs to acquire.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    skill: { type: Type.STRING, description: "The specific skill to learn." },
+                    reason: { type: Type.STRING, description: "Why this skill is important for the career path." },
+                },
+                required: ["skill", "reason"],
+            },
+        },
+        learningRoadmap: {
+            type: Type.ARRAY,
+            description: "A step-by-step plan to acquire the necessary skills.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    duration: { type: Type.STRING, description: "Estimated time for this step (e.g., '0-6 Months')." },
+                    milestone: { type: Type.STRING, description: "The main goal of this step (e.g., 'Foundations')." },
+                    details: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Specific actions to take in this step." },
+                },
+                required: ["duration", "milestone", "details"],
+            },
+        },
+        salaryProspects: {
+            type: Type.OBJECT,
+            description: "Salary expectations for this career in India.",
+            properties: {
+                range: { type: Type.STRING, description: "Salary range for an entry-level position (in INR)." },
+                growth: { type: Type.STRING, description: "Potential for salary growth over time." },
+            },
+            required: ["range", "growth"],
+        },
+        certifications: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of valuable certifications." },
+        marketAdvice: { type: Type.STRING, description: "Specific advice for breaking into the Indian job market for this role." },
+    };
+    
+    const requiredFields = ["careerPath", "reasoning", "skillGapAnalysis", "learningRoadmap", "salaryProspects", "certifications", "marketAdvice"];
+
+    if (hasResume) {
+        recommendationProperties.resumeSuggestions = {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: "Actionable suggestions to improve the student's resume for this specific career path."
+        };
+        requiredFields.push("resumeSuggestions");
+    }
 
     const responseSchema = {
         type: Type.OBJECT,
@@ -45,57 +103,45 @@ const getCareerRecommendations = async (profile: StudentProfile): Promise<Career
                 type: Type.ARRAY,
                 items: {
                     type: Type.OBJECT,
-                    properties: {
-                        careerPath: { type: Type.STRING, description: "The name of the recommended career path." },
-                        reasoning: { type: Type.STRING, description: "Detailed reasoning for the recommendation, linking the student's profile to market demands." },
-                        skillGapAnalysis: {
-                            type: Type.ARRAY,
-                            description: "List of skills the student needs to acquire.",
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    skill: { type: Type.STRING, description: "The specific skill to learn." },
-                                    reason: { type: Type.STRING, description: "Why this skill is important for the career path." },
-                                },
-                                required: ["skill", "reason"],
-                            },
-                        },
-                        learningRoadmap: {
-                            type: Type.ARRAY,
-                            description: "A step-by-step plan to acquire the necessary skills.",
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    duration: { type: Type.STRING, description: "Estimated time for this step (e.g., '0-6 Months')." },
-                                    milestone: { type: Type.STRING, description: "The main goal of this step (e.g., 'Foundations')." },
-                                    details: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Specific actions to take in this step." },
-                                },
-                                required: ["duration", "milestone", "details"],
-                            },
-                        },
-                        salaryProspects: {
-                            type: Type.OBJECT,
-                            description: "Salary expectations for this career in India.",
-                            properties: {
-                                range: { type: Type.STRING, description: "Salary range for an entry-level position (in INR)." },
-                                growth: { type: Type.STRING, description: "Potential for salary growth over time." },
-                            },
-                            required: ["range", "growth"],
-                        },
-                        certifications: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of valuable certifications." },
-                        marketAdvice: { type: Type.STRING, description: "Specific advice for breaking into the Indian job market for this role." },
-                    },
-                    required: ["careerPath", "reasoning", "skillGapAnalysis", "learningRoadmap", "salaryProspects", "certifications", "marketAdvice"],
+                    properties: recommendationProperties,
+                    required: requiredFields,
                 },
             },
         },
         required: ["recommendations"],
     };
 
+    let contents: any;
+
+    if (hasResume && resumeFile) {
+        if (resumeFile.mimeType === 'text/plain') {
+            prompt += `
+                Student's Uploaded Resume (text format):
+                ---
+                ${resumeFile.data}
+                ---
+                Based on their profile AND the provided resume, give suggestions.
+            `;
+            contents = prompt;
+        } else {
+            prompt += `\nBased on their profile AND the attached resume file (${resumeFile.name}), give suggestions.`;
+            contents = {
+                parts: [
+                    { text: prompt },
+                    { inlineData: { mimeType: resumeFile.mimeType, data: resumeFile.data } }
+                ]
+            };
+        }
+    } else {
+        prompt += '\nGive suggestions based on their profile.';
+        contents = prompt;
+    }
+
+
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: prompt,
+            contents: contents,
             config: {
                 responseMimeType: "application/json",
                 responseSchema: responseSchema,
@@ -123,12 +169,12 @@ const AdvisorPage: React.FC = () => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
-    const handleProfileSubmit = async (profile: StudentProfile) => {
+    const handleProfileSubmit = async (profile: StudentProfile, resumeFile: ResumeFile | null) => {
         setIsLoading(true);
         setError(null);
         setRecommendations(null);
         try {
-            const result = await getCareerRecommendations(profile);
+            const result = await getCareerRecommendations(profile, resumeFile);
             setRecommendations(result);
         } catch (err) {
             setError('Failed to get career recommendations. Please try again.');

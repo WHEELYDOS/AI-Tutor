@@ -4,11 +4,26 @@ import HomePage from './pages/HomePage';
 import AdvisorPage from './pages/AdvisorPage';
 import TutorPage from './pages/TutorPage';
 import RoadmapPage from './pages/RoadmapPage';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
+
+export type Page = 'home' | 'advisor' | 'tutor' | 'roadmap' | 'login' | 'signup';
 
 const App: React.FC = () => {
-    const [page, setPage] = useState<'home' | 'advisor' | 'tutor' | 'roadmap'>('home');
+    const [page, setPage] = useState<Page>('home');
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-    const navigate = (p: 'home' | 'advisor' | 'tutor' | 'roadmap') => setPage(p);
+    const navigate = (p: Page) => setPage(p);
+
+    const handleLogin = () => {
+        setIsAuthenticated(true);
+        navigate('home');
+    };
+
+    const handleLogout = () => {
+        setIsAuthenticated(false);
+        navigate('home');
+    };
 
     const renderPage = () => {
         switch (page) {
@@ -18,6 +33,10 @@ const App: React.FC = () => {
                 return <TutorPage />;
             case 'roadmap':
                 return <RoadmapPage />;
+            case 'login':
+                return <LoginPage onNavigate={navigate} onLogin={handleLogin} />;
+            case 'signup':
+                return <SignupPage onNavigate={navigate} onLogin={handleLogin} />;
             case 'home':
             default:
                 return <HomePage onNavigate={navigate} />;
@@ -26,7 +45,7 @@ const App: React.FC = () => {
 
     return (
         <div className="min-h-screen font-sans">
-            <Header onNavigate={navigate} />
+            <Header onNavigate={navigate} isAuthenticated={isAuthenticated} onLogout={handleLogout} />
             <main>
                 {renderPage()}
             </main>

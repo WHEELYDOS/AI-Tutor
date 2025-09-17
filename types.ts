@@ -30,6 +30,7 @@ export interface CareerRecommendation {
     };
     certifications: string[];
     marketAdvice: string;
+    resumeSuggestions?: string[];
 }
 
 export interface CareerRecommendationResponse {

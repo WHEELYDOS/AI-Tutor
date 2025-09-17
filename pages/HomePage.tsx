@@ -1,7 +1,8 @@
 import React from 'react';
+import type { Page } from '../App';
 
 interface HomePageProps {
-    onNavigate: (page: 'advisor' | 'tutor' | 'roadmap') => void;
+    onNavigate: (page: Page) => void;
 }
 
 const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {

@@ -1,10 +1,13 @@
 import React from 'react';
+import type { Page } from '../App';
 
 interface HeaderProps {
-    onNavigate: (page: 'home' | 'advisor' | 'tutor' | 'roadmap') => void;
+    onNavigate: (page: Page) => void;
+    isAuthenticated: boolean;
+    onLogout: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
+const Header: React.FC<HeaderProps> = ({ onNavigate, isAuthenticated, onLogout }) => {
     const NavButton: React.FC<{ page: 'advisor' | 'tutor' | 'roadmap', children: React.ReactNode }> = ({ page, children }) => (
         <button
             onClick={() => onNavigate(page)}
@@ -33,13 +36,35 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
                         </h1>
                     </button>
                 </div>
-                <nav className="flex items-center space-x-1 md:space-x-2">
+                <nav className="hidden md:flex items-center space-x-1 md:space-x-2">
                     <NavButton page="advisor">Career Advisor</NavButton>
                     <NavButton page="tutor">AI Tutor</NavButton>
                     <NavButton page="roadmap">Roadmaps</NavButton>
                 </nav>
-                <div className="flex-1">
-                    {/* Spacer div */}
+                <div className="flex-1 flex items-center justify-end space-x-2">
+                    {isAuthenticated ? (
+                        <button
+                            onClick={onLogout}
+                            className="bg-[#26667F] text-white px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+                        >
+                            Logout
+                        </button>
+                    ) : (
+                        <>
+                            <button
+                                onClick={() => onNavigate('login')}
+                                className="text-[#124170]/80 hover:bg-[#67C090]/20 hover:text-[#124170] px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                            >
+                                Login
+                            </button>
+                            <button
+                                onClick={() => onNavigate('signup')}
+                                className="bg-[#26667F] text-white px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+                            >
+                                Sign Up
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
         </header>
