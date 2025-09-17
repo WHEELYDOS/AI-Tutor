@@ -1,13 +1,14 @@
 import React from 'react';
 import type { Page } from '../App';
+import type { User } from '../types';
 
 interface HeaderProps {
     onNavigate: (page: Page) => void;
-    isAuthenticated: boolean;
+    currentUser: User | null;
     onLogout: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onNavigate, isAuthenticated, onLogout }) => {
+const Header: React.FC<HeaderProps> = ({ onNavigate, currentUser, onLogout }) => {
     const NavButton: React.FC<{ page: 'advisor' | 'tutor' | 'roadmap', children: React.ReactNode }> = ({ page, children }) => (
         <button
             onClick={() => onNavigate(page)}
@@ -41,14 +42,19 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, isAuthenticated, onLogout }
                     <NavButton page="tutor">AI Tutor</NavButton>
                     <NavButton page="roadmap">Roadmaps</NavButton>
                 </nav>
-                <div className="flex-1 flex items-center justify-end space-x-2">
-                    {isAuthenticated ? (
-                        <button
-                            onClick={onLogout}
-                            className="bg-[#26667F] text-white px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
-                        >
-                            Logout
-                        </button>
+                <div className="flex-1 flex items-center justify-end space-x-3">
+                    {currentUser ? (
+                        <>
+                            <span className="hidden sm:inline text-sm font-medium text-[#124170]">
+                                Hi, {currentUser.name.split(' ')[0]}
+                            </span>
+                            <button
+                                onClick={onLogout}
+                                className="bg-[#26667F] text-white px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+                            >
+                                Logout
+                            </button>
+                        </>
                     ) : (
                         <>
                             <button

@@ -1,20 +1,31 @@
 import React, { useState } from 'react';
 import type { Page } from '../App';
+import type { User } from '../types';
 
 interface LoginPageProps {
     onNavigate: (page: Page) => void;
-    onLogin: () => void;
+    onAuthSuccess: (user: User) => void;
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLogin }) => {
+const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onAuthSuccess }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Mock login logic
-        console.log('Logging in with:', { email, password });
-        onLogin();
+        setError('');
+
+        const storedUsers = localStorage.getItem('users');
+        const users: User[] = storedUsers ? JSON.parse(storedUsers) : [];
+
+        const foundUser = users.find(user => user.email === email && user.password === password);
+
+        if (foundUser) {
+            onAuthSuccess({ name: foundUser.name, email: foundUser.email });
+        } else {
+            setError('Invalid email or password.');
+        }
     };
 
     return (
@@ -23,6 +34,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLogin }) => {
                 <div className="bg-white/60 backdrop-blur-md rounded-xl p-8 shadow-xl border border-[#67C090]/60">
                     <h2 className="text-3xl font-bold text-center text-[#124170] mb-6">Welcome Back!</h2>
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        {error && <p className="text-red-600 text-sm text-center bg-red-100 p-2 rounded-md">{error}</p>}
                         <div>
                             <label htmlFor="email" className="block text-sm font-medium text-[#124170]/70 mb-1">Email Address</label>
                             <input

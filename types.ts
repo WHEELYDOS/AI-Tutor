@@ -56,3 +56,10 @@ export interface Roadmap {
     description: string;
     root: RoadmapNode;
 }
+
+// Type for User Authentication
+export interface User {
+    name: string;
+    email: string;
+    password?: string;
+}
