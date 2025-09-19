@@ -25,6 +25,10 @@ const getGeneratedRoadmap = async (topic: string): Promise<Roadmap> => {
         Generate a unique ID for each node.
     `;
     
+    // The previous schema was invalid because a nested `children` property of type `ARRAY` was missing its `items` definition.
+    // This updated schema defines the structure for the root node and its direct children.
+    // To avoid schema recursion, the `children` property is omitted from the definition of the items inside the root's `children` array.
+    // The model is expected to generate the deeper hierarchical structure based on the explicit instructions in the prompt.
     const responseSchema = {
         type: Type.OBJECT,
         properties: {
@@ -36,13 +40,30 @@ const getGeneratedRoadmap = async (topic: string): Promise<Roadmap> => {
                     id: { type: Type.INTEGER },
                     title: { type: Type.STRING },
                     description: { type: Type.STRING },
-                    type: { type: Type.STRING, enum: ['core', 'elective', 'tool'] },
-                    children: { type: Type.ARRAY, items: { $ref: "#/properties/root" } } // Recursive definition
+                    type: { type: Type.STRING },
+                    children: {
+                        type: Type.ARRAY,
+                        items: { // This defines a "node"
+                            type: Type.OBJECT,
+                            properties: {
+                                id: { type: Type.INTEGER },
+                                title: { type: Type.STRING },
+                                description: { type: Type.STRING },
+                                type: { type: Type.STRING },
+                                // We also expect children here, but defining them in the schema causes recursion issues.
+                                // By omitting the 'children' property from this part of the schema, we break the recursion.
+                                // The prompt instructs the model to create a nested structure, and the client-side type can handle it.
+                            },
+                             // Since 'children' is not in properties here, it cannot be in required.
+                            required: ["id", "title", "description", "type"],
+                        },
+                    },
                 },
-                required: ["id", "title", "description", "type", "children"]
-            }
+                // The root node itself is required to have children.
+                required: ["id", "title", "description", "type", "children"],
+            },
         },
-        required: ["title", "description", "root"]
+        required: ["title", "description", "root"],
     };
 
     try {
